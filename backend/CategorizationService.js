@@ -392,9 +392,12 @@ function saveApprovedTransactions(transactions, bankId) {
       // Resolve o bankId: usa o parâmetro global ou o ID do banco na transação
       var resolvedBankId = bankId || tx.bankId || '';
       
+      // NORMALIZA o tipo da transação antes de salvar na planilha
+      var normalizedType = NormalizationUtils.normalizeTransactionType(tx.transactionType);
+      
       sheet.appendRow([
         tx.date,
-        tx.transactionType,
+        normalizedType, // Tipo normalizado (sempre "Entrada" ou "Saída")
         tx.category || 'A Classificar',
         tx.subcategory || '',
         tx.value,
@@ -408,7 +411,7 @@ function saveApprovedTransactions(transactions, bankId) {
       
       // Se tem categoria válida, aprende a regra automaticamente
       if (tx.category && tx.category !== 'A Classificar') {
-        CategorizationService.learnFromCorrection(ss, tx.description, tx.category, tx.subcategory, tx.transactionType);
+        CategorizationService.learnFromCorrection(ss, tx.description, tx.category, tx.subcategory, normalizedType);
       }
       
     } catch (e) {
