@@ -87,6 +87,10 @@ var CategorizationService = {
       var jsonMatch = response.match(/\{[^}]+\}/);
       if (jsonMatch) {
         var result = JSON.parse(jsonMatch[0]);
+        // Normaliza o tipo retornado pela IA
+        if (result.type) {
+          result.type = NormalizationUtils.normalizeTransactionType(result.type);
+        }
         result.method = 'ai';
         return result;
       }
