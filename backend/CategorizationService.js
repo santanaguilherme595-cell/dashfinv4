@@ -119,7 +119,9 @@ var CategorizationService = {
         description: tx.description,
         value: tx.value,
         date: tx.date,
-        transactionType: tx.transactionType || (tx.value < 0 ? 'Saída' : 'Entrada'),
+        // Normaliza o tipo da transação
+        transactionType: NormalizationUtils.normalizeTransactionType(tx.transactionType) || 
+                        (tx.value < 0 ? NormalizationUtils.TIPO_SAIDA : NormalizationUtils.TIPO_ENTRADA),
         selected: true // Por padrão, todas vêm selecionadas
       };
       
