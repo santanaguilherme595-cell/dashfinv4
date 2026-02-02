@@ -143,7 +143,8 @@ var CategorizationService = {
         if (!aiResult.error) {
           result.category = aiResult.category;
           result.subcategory = aiResult.subcategory || '';
-          result.transactionType = aiResult.type || result.transactionType;
+          // Normaliza o tipo retornado pela IA
+          result.transactionType = NormalizationUtils.normalizeTransactionType(aiResult.type) || result.transactionType;
           result.confidence = aiResult.confidence;
           result.method = 'ai';
           aiCount++;
