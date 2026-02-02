@@ -34,7 +34,7 @@ var CategorizationService = {
           pattern: String(row[0]).toLowerCase().trim(),
           category: String(row[1]).trim(),
           subcategory: String(row[2]).trim() || '',
-          type: String(row[3]).trim() || 'auto' // auto, Entrada, Saída
+          type: NormalizationUtils.normalizeRuleType(row[3]) // Normaliza o tipo
         });
       }
     });
