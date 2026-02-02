@@ -30,11 +30,11 @@ var ImportService = {
       // Limpa descrição
       tx.description = tx.description.replace(/\s+/g, ' ').trim();
       
-      // Determina tipo baseado no valor
+      // Determina tipo baseado no valor e normaliza
       if (tx.value > 0) {
-        tx.transactionType = 'Entrada';
+        tx.transactionType = NormalizationUtils.TIPO_ENTRADA;
       } else {
-        tx.transactionType = 'Saída';
+        tx.transactionType = NormalizationUtils.TIPO_SAIDA;
         tx.value = Math.abs(tx.value);
       }
       
@@ -107,12 +107,12 @@ var ImportService = {
         value: this.parseCSVValue(columns[config.valueColumn])
       };
       
-      // Tipo
+      // Tipo - usa normalização para aceitar variações
       if (config.typeColumn >= 0 && columns[config.typeColumn]) {
-        var typeStr = columns[config.typeColumn].toLowerCase().trim();
-        tx.transactionType = typeStr.indexOf('créd') > -1 || typeStr.indexOf('cred') > -1 || typeStr === 'c' ? 'Entrada' : 'Saída';
+        var typeStr = columns[config.typeColumn];
+        tx.transactionType = NormalizationUtils.normalizeTransactionType(typeStr);
       } else {
-        tx.transactionType = tx.value >= 0 ? 'Entrada' : 'Saída';
+        tx.transactionType = tx.value >= 0 ? NormalizationUtils.TIPO_ENTRADA : NormalizationUtils.TIPO_SAIDA;
         tx.value = Math.abs(tx.value);
       }
       
