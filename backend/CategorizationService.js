@@ -250,9 +250,12 @@ var CategorizationService = {
     // Usa as 2-3 palavras mais significativas como padrão
     var pattern = words.slice(0, 3).join(' ');
     
+    // Normaliza o tipo antes de salvar a regra
+    var normalizedType = NormalizationUtils.normalizeRuleType(correctType);
+    
     if (pattern.length > 5) {
-      this.addCategorizationRule(ss, pattern, correctCategory, correctSubcategory || '', correctType || 'auto');
-      Logger.log('[Categorization] Nova regra aprendida: "' + pattern + '" -> ' + correctCategory);
+      this.addCategorizationRule(ss, pattern, correctCategory, correctSubcategory || '', normalizedType);
+      Logger.log('[Categorization] Nova regra aprendida: "' + pattern + '" -> ' + correctCategory + ' (' + normalizedType + ')');
       return { learned: true, pattern: pattern };
     }
     
