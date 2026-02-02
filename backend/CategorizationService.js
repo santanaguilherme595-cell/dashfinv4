@@ -131,7 +131,9 @@ var CategorizationService = {
       if (ruleResult) {
         result.category = ruleResult.category;
         result.subcategory = ruleResult.subcategory;
-        result.transactionType = ruleResult.type === 'auto' ? result.transactionType : ruleResult.type;
+        // Normaliza o tipo - se regra tem tipo específico, usa; senão mantém o da transação
+        result.transactionType = ruleResult.type === 'auto' ? result.transactionType : 
+                                  NormalizationUtils.normalizeTransactionType(ruleResult.type);
         result.confidence = ruleResult.confidence;
         result.method = 'rule';
       } else if (aiCount < maxAIPerBatch && apiKey) {
