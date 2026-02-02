@@ -76,7 +76,8 @@ var CategorizationService = {
     prompt += 'Valor: R$ ' + value + '\n\n';
     prompt += 'Categorias disponiveis: ' + categoriesList + '\n\n';
     prompt += 'Responda APENAS no formato JSON:\n';
-    prompt += '{"category": "Nome da Categoria", "subcategory": "Subcategoria opcional", "type": "Entrada ou Saida", "confidence": 0.8}\n';
+    prompt += '{"category": "Nome da Categoria", "subcategory": "Subcategoria opcional", "type": "Entrada ou Saída", "confidence": 0.8}\n';
+    prompt += 'IMPORTANTE: O campo "type" deve ser exatamente "Entrada" ou "Saída" (com acento no í).\n';
     prompt += 'Se nao tiver certeza, use confidence baixo (0.5-0.7).';
     
     try {
