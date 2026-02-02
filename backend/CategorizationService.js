@@ -52,7 +52,7 @@ var CategorizationService = {
         return {
           category: rule.category,
           subcategory: rule.subcategory,
-          type: rule.type,
+          type: NormalizationUtils.normalizeRuleType(rule.type), // Normaliza o tipo
           confidence: 0.95,
           method: 'rule'
         };
