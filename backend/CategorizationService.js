@@ -206,18 +206,21 @@ var CategorizationService = {
       sheet.setFrozenRows(1);
     }
     
+    // Normaliza o tipo antes de salvar
+    var normalizedType = NormalizationUtils.normalizeRuleType(type);
+    
     // Verifica se já existe
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]).toLowerCase().trim() === pattern.toLowerCase().trim()) {
         // Atualiza existente
-        sheet.getRange(i + 1, 2, 1, 3).setValues([[category, subcategory || '', type || 'auto']]);
+        sheet.getRange(i + 1, 2, 1, 3).setValues([[category, subcategory || '', normalizedType]]);
         return { success: true, updated: true };
       }
     }
     
     // Adiciona nova
-    sheet.appendRow([pattern.toLowerCase().trim(), category, subcategory || '', type || 'auto']);
+    sheet.appendRow([pattern.toLowerCase().trim(), category, subcategory || '', normalizedType]);
     
     return { success: true, added: true };
   },
