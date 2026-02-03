@@ -34,7 +34,7 @@ var CategorizationService = {
           pattern: String(row[0]).toLowerCase().trim(),
           category: String(row[1]).trim(),
           subcategory: String(row[2]).trim() || '',
-          type: String(row[3]).trim() || 'auto' // auto, Entrada, Saída
+          type: NormalizationUtils.normalizeRuleType(row[3]) // Normaliza o tipo
         });
       }
     });
@@ -52,7 +52,7 @@ var CategorizationService = {
         return {
           category: rule.category,
           subcategory: rule.subcategory,
-          type: rule.type,
+          type: NormalizationUtils.normalizeRuleType(rule.type), // Normaliza o tipo
           confidence: 0.95,
           method: 'rule'
         };
@@ -76,7 +76,8 @@ var CategorizationService = {
     prompt += 'Valor: R$ ' + value + '\n\n';
     prompt += 'Categorias disponiveis: ' + categoriesList + '\n\n';
     prompt += 'Responda APENAS no formato JSON:\n';
-    prompt += '{"category": "Nome da Categoria", "subcategory": "Subcategoria opcional", "type": "Entrada ou Saida", "confidence": 0.8}\n';
+    prompt += '{"category": "Nome da Categoria", "subcategory": "Subcategoria opcional", "type": "Entrada ou Saída", "confidence": 0.8}\n';
+    prompt += 'IMPORTANTE: O campo "type" deve ser exatamente "Entrada" ou "Saída" (com acento no í).\n';
     prompt += 'Se nao tiver certeza, use confidence baixo (0.5-0.7).';
     
     try {
@@ -86,6 +87,10 @@ var CategorizationService = {
       var jsonMatch = response.match(/\{[^}]+\}/);
       if (jsonMatch) {
         var result = JSON.parse(jsonMatch[0]);
+        // Normaliza o tipo retornado pela IA
+        if (result.type) {
+          result.type = NormalizationUtils.normalizeTransactionType(result.type);
+        }
         result.method = 'ai';
         return result;
       }
@@ -114,7 +119,9 @@ var CategorizationService = {
         description: tx.description,
         value: tx.value,
         date: tx.date,
-        transactionType: tx.transactionType || (tx.value < 0 ? 'Saída' : 'Entrada'),
+        // Normaliza o tipo da transação
+        transactionType: NormalizationUtils.normalizeTransactionType(tx.transactionType) || 
+                        (tx.value < 0 ? NormalizationUtils.TIPO_SAIDA : NormalizationUtils.TIPO_ENTRADA),
         selected: true // Por padrão, todas vêm selecionadas
       };
       
@@ -124,7 +131,9 @@ var CategorizationService = {
       if (ruleResult) {
         result.category = ruleResult.category;
         result.subcategory = ruleResult.subcategory;
-        result.transactionType = ruleResult.type === 'auto' ? result.transactionType : ruleResult.type;
+        // Normaliza o tipo - se regra tem tipo específico, usa; senão mantém o da transação
+        result.transactionType = ruleResult.type === 'auto' ? result.transactionType : 
+                                  NormalizationUtils.normalizeTransactionType(ruleResult.type);
         result.confidence = ruleResult.confidence;
         result.method = 'rule';
       } else if (aiCount < maxAIPerBatch && apiKey) {
@@ -134,7 +143,8 @@ var CategorizationService = {
         if (!aiResult.error) {
           result.category = aiResult.category;
           result.subcategory = aiResult.subcategory || '';
-          result.transactionType = aiResult.type || result.transactionType;
+          // Normaliza o tipo retornado pela IA
+          result.transactionType = NormalizationUtils.normalizeTransactionType(aiResult.type) || result.transactionType;
           result.confidence = aiResult.confidence;
           result.method = 'ai';
           aiCount++;
@@ -196,18 +206,21 @@ var CategorizationService = {
       sheet.setFrozenRows(1);
     }
     
+    // Normaliza o tipo antes de salvar
+    var normalizedType = NormalizationUtils.normalizeRuleType(type);
+    
     // Verifica se já existe
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]).toLowerCase().trim() === pattern.toLowerCase().trim()) {
         // Atualiza existente
-        sheet.getRange(i + 1, 2, 1, 3).setValues([[category, subcategory || '', type || 'auto']]);
+        sheet.getRange(i + 1, 2, 1, 3).setValues([[category, subcategory || '', normalizedType]]);
         return { success: true, updated: true };
       }
     }
     
     // Adiciona nova
-    sheet.appendRow([pattern.toLowerCase().trim(), category, subcategory || '', type || 'auto']);
+    sheet.appendRow([pattern.toLowerCase().trim(), category, subcategory || '', normalizedType]);
     
     return { success: true, added: true };
   },
@@ -240,9 +253,12 @@ var CategorizationService = {
     // Usa as 2-3 palavras mais significativas como padrão
     var pattern = words.slice(0, 3).join(' ');
     
+    // Normaliza o tipo antes de salvar a regra
+    var normalizedType = NormalizationUtils.normalizeRuleType(correctType);
+    
     if (pattern.length > 5) {
-      this.addCategorizationRule(ss, pattern, correctCategory, correctSubcategory || '', correctType || 'auto');
-      Logger.log('[Categorization] Nova regra aprendida: "' + pattern + '" -> ' + correctCategory);
+      this.addCategorizationRule(ss, pattern, correctCategory, correctSubcategory || '', normalizedType);
+      Logger.log('[Categorization] Nova regra aprendida: "' + pattern + '" -> ' + correctCategory + ' (' + normalizedType + ')');
       return { learned: true, pattern: pattern };
     }
     
@@ -382,9 +398,12 @@ function saveApprovedTransactions(transactions, bankId) {
       // Resolve o bankId: usa o parâmetro global ou o ID do banco na transação
       var resolvedBankId = bankId || tx.bankId || '';
       
+      // NORMALIZA o tipo da transação antes de salvar na planilha
+      var normalizedType = NormalizationUtils.normalizeTransactionType(tx.transactionType);
+      
       sheet.appendRow([
         tx.date,
-        tx.transactionType,
+        normalizedType, // Tipo normalizado (sempre "Entrada" ou "Saída")
         tx.category || 'A Classificar',
         tx.subcategory || '',
         tx.value,
@@ -398,7 +417,7 @@ function saveApprovedTransactions(transactions, bankId) {
       
       // Se tem categoria válida, aprende a regra automaticamente
       if (tx.category && tx.category !== 'A Classificar') {
-        CategorizationService.learnFromCorrection(ss, tx.description, tx.category, tx.subcategory, tx.transactionType);
+        CategorizationService.learnFromCorrection(ss, tx.description, tx.category, tx.subcategory, normalizedType);
       }
       
     } catch (e) {

@@ -592,10 +592,13 @@ const DataService = {
         const cat = String(row[2]).trim();
         const accountId = String(row[5]).trim();
         const bankId = String(row[6]).trim();
+        // Normaliza o tipo da transação ao ler da planilha
+        const rawType = String(row[1]).trim();
+        const normalizedType = NormalizationUtils.normalizeTransactionType(rawType);
         
         return {
           date: formatDate(row[0]),
-          type: String(row[1]).trim(),
+          type: normalizedType,
           category: cat,
           dreGroup: dreMapping[cat] || 'Outros',
           subcategory: String(row[3]).trim(),
